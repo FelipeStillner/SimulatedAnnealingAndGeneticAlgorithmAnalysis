@@ -1,18 +1,17 @@
+from matplotlib import pyplot as plt
 import tsplib95
 import random
 import math
 import time
 import copy
-import pandas as pd
 
 # Parameters
-SAME_SOLUTION_MAX = 100 # standard 1500
-SAME_COST_DIFF_MAX = 10000 # standard 150000
-FUNCTION = 1 # 0: Inverse, 1: Insert, 2: Swap, 3: Swap Routes
-INITIAL_TEMP = 5000 # standard 5000
+REPEAT = 10000
+FUNCTION = 0 # 0: Inverse, 1: Insert, 2: Swap, 3: Swap Routes
+INITIAL_TEMP = 0.0000001 # standard 5000
 ALPHA = 0.99 # standard 0.99
 TEST_CASE = 1 # standard 1
-REPEAT = 10 # standard 10
+ATTEMPT = 10 # standard 10
 
 # Import Dataset
 data = tsplib95.load(f'test_cases/pr{TEST_CASE}.tsp')
@@ -20,53 +19,49 @@ nodes = list(data.get_nodes())
 
 # Main
 def main():
-  best_route_distance = []
-  best_route = []
-  convergence_time = []
-  for _ in range(REPEAT):     
-    start = time.time()
-    route, route_distance = annealing(nodes)
-    time_elapsed = time.time() - start
-    best_route_distance.append(route_distance)
-    best_route.append(route)
-    convergence_time.append(time_elapsed)
-    
-  pd.DataFrame(best_route).to_csv(f'test_results/pr{TEST_CASE}_route.csv', index=False, header=False)
-  pd.DataFrame(best_route_distance).to_csv(f'test_results/pr{TEST_CASE}_route_distance.csv', index=False, header=False)
-  pd.DataFrame(convergence_time).to_csv(f'test_results/pr{TEST_CASE}_time_convergence.csv', index=False, header=False)
+  y = []
+  x = []
+  for init_function in range(0, 4):
+    FUNCTION = init_function
+    distances = []
+    routes = []
+    times = []
+    for i in range(ATTEMPT):     
+      start = time.time()
+      route, route_distance = annealing()
+      print(f'Attempt: {i}')
+      time_elapsed = time.time() - start
+      distances.append(route_distance)
+      routes.append(route)
+      times.append(time_elapsed)
+    print(f'Function: {FUNCTION}')
+    y.append(distances)
+    x.append(FUNCTION)
+  plt.boxplot(y, labels=x)
+  plt.show()
 
 # Simulated Annealing
-def annealing(initial_state) -> tuple[list[int], float]:
+def annealing() -> tuple[list[int], float]:
+  probability = 0
   temp = INITIAL_TEMP
-  solution = initial_state
-  same_solution = 0
-  same_cost_diff = 0
+  solution = random.sample(nodes, len(nodes))
   solution_cost = get_cost(solution)
-  
-  while same_solution < SAME_SOLUTION_MAX and same_cost_diff < SAME_COST_DIFF_MAX:
+
+  for _ in range(REPEAT):
     neighbor = get_neighbor(solution)
     neighbor_cost = get_cost(neighbor)
     cost_diff = neighbor_cost - solution_cost
-    if cost_diff >= 0:
+    if cost_diff <= 0:
       solution = neighbor
       solution_cost = neighbor_cost
-      same_solution = 0
-      if cost_diff == 0:
-        same_cost_diff = 0    
-      else:
-        same_cost_diff +=1
     else:
-      if random.uniform(0, 1) <= math.exp(float(cost_diff) / float(temp)):
+      fitness = 1/float(solution_cost) - 1/float(neighbor_cost)
+      probability = math.exp(-fitness/temp)
+      if random.random() < probability:
         solution = neighbor
         solution_cost = neighbor_cost
-        same_solution = 0
-        same_cost_diff = 0
-      else:
-        same_solution +=1
-        same_cost_diff+=1
     temp = temp*ALPHA
-
-  return solution, 1/get_cost(solution)
+  return solution, get_cost(solution)
 
 # Get Cost
 def get_cost(state) -> float:
@@ -79,8 +74,7 @@ def get_cost(state) -> float:
     else:
       to_city = state[0]
     distance += data.get_weight(from_city, to_city)
-  fitness = 1/float(distance)
-  return fitness
+  return distance
     
 # Get Neighbor
 def get_neighbor(state: list[int]) -> list[int]:
