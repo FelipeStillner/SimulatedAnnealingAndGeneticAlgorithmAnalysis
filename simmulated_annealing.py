@@ -2,16 +2,9 @@ from matplotlib import pyplot as plt
 import tsplib95
 import random
 import math
-import time
 import copy
 
-# Parameters
-REPEAT = 10000
-FUNCTION = 0 # 0: Inverse, 1: Insert, 2: Swap, 3: Swap Routes
-INITIAL_TEMP = 0.0000001 # standard 5000
-ALPHA = 0.99 # standard 0.99
 TEST_CASE = 1 # standard 1
-ATTEMPT = 10 # standard 10
 
 # Import Dataset
 data = tsplib95.load(f'test_cases/pr{TEST_CASE}.tsp')
@@ -21,34 +14,51 @@ nodes = list(data.get_nodes())
 def main():
   y = []
   x = []
-  for init_function in range(0, 4):
-    FUNCTION = init_function
-    distances = []
-    routes = []
-    times = []
-    for i in range(ATTEMPT):     
-      start = time.time()
-      route, route_distance = annealing()
-      print(f'Attempt: {i}')
-      time_elapsed = time.time() - start
-      distances.append(route_distance)
-      routes.append(route)
-      times.append(time_elapsed)
-    print(f'Function: {FUNCTION}')
-    y.append(distances)
-    x.append(FUNCTION)
-  plt.boxplot(y, labels=x)
+  all_distances = []
+  for i in range(0, 4):
+    attempt = 100
+
+    # Parameters
+    init_temp = 10**-8 # < 10**-7
+    last_temp = 10**-(9+i)
+    repeat = 10000
+    alpha = math.exp(math.log(last_temp/init_temp)/repeat)
+    function = 0
+
+    change_distances = []
+    for _ in range(attempt):   
+      attempt_distances = annealing(init_temp, alpha, repeat, function)
+      change_distances.append(attempt_distances)
+      print(f'Change: {last_temp}, Attempt: {_}')
+    min_distances = [min(change_distances) for change_distances in change_distances]
+    print(f'Change: {last_temp}')
+    y.append(min_distances)
+    x.append(last_temp)
+    all_distances.append(change_distances)
+  # plt.boxplot(y, tick_labels=x)
+  for i in all_distances:
+    avg_distances = []
+    for k in range(len(i[0])):
+      dists = []
+      for j in range(len(i)):
+        dists.append(i[j][k])
+      avg_distances.append(sum(dists)/len(dists))
+    plt.plot(avg_distances)
+    plt.legend(x)
   plt.show()
 
+
 # Simulated Annealing
-def annealing() -> tuple[list[int], float]:
+def annealing(initial_temp: float, alpha: float, repeat: int, function: int) -> list[list[int]]:
   probability = 0
-  temp = INITIAL_TEMP
+  temp = initial_temp
   solution = random.sample(nodes, len(nodes))
   solution_cost = get_cost(solution)
 
-  for _ in range(REPEAT):
-    neighbor = get_neighbor(solution)
+  attempt_distances = []
+
+  for _ in range(repeat):
+    neighbor = get_neighbor(solution, function)
     neighbor_cost = get_cost(neighbor)
     cost_diff = neighbor_cost - solution_cost
     if cost_diff <= 0:
@@ -60,8 +70,10 @@ def annealing() -> tuple[list[int], float]:
       if random.random() < probability:
         solution = neighbor
         solution_cost = neighbor_cost
-    temp = temp*ALPHA
-  return solution, get_cost(solution)
+    temp = temp*alpha
+    attempt_distances.append(solution_cost)
+
+  return attempt_distances
 
 # Get Cost
 def get_cost(state) -> float:
@@ -77,13 +89,13 @@ def get_cost(state) -> float:
   return distance
     
 # Get Neighbor
-def get_neighbor(state: list[int]) -> list[int]:
+def get_neighbor(state: list[int], function: int) -> list[int]:
   neighbor = copy.deepcopy(state)
-  if FUNCTION == 0:
+  if function == 0:
     inverse(neighbor)
-  elif FUNCTION == 1:
+  elif function == 1:
     insert(neighbor)
-  elif FUNCTION == 2 :
+  elif function == 2 :
     swap(neighbor)
   else:
     swap_routes(neighbor)
