@@ -4,10 +4,10 @@ import random
 import math
 import copy
 
-TEST_CASE = 1 # standard 1
+TEST_CASE = "01" # standard 1
 
 # Import Dataset
-data = tsplib95.load(f'test_cases/pr{TEST_CASE}.tsp')
+data = tsplib95.load(f'test_cases/tc{TEST_CASE}.tsp')
 nodes = list(data.get_nodes())
 
 # Main
@@ -16,26 +16,30 @@ def main():
   x = []
   all_distances = []
   for i in range(0, 4):
-    attempt = 100
+    attempt = 5
 
     # Parameters
     init_temp = 10**-8 # < 10**-7
     last_temp = 10**-(9+i)
-    repeat = 10000
+    repeat = 1000
     alpha = math.exp(math.log(last_temp/init_temp)/repeat)
     function = 0
 
     change_distances = []
     for _ in range(attempt):   
-      attempt_distances = annealing(init_temp, alpha, repeat, function)
+      attempt_distances, solution = annealing(init_temp, alpha, repeat, function)
       change_distances.append(attempt_distances)
       print(f'Change: {last_temp}, Attempt: {_}')
+      plot_routes(solution)
+
     min_distances = [min(change_distances) for change_distances in change_distances]
     print(f'Change: {last_temp}')
     y.append(min_distances)
     x.append(last_temp)
     all_distances.append(change_distances)
   # plt.boxplot(y, tick_labels=x)
+
+  # Plotting
   for i in all_distances:
     avg_distances = []
     for k in range(len(i[0])):
@@ -48,8 +52,26 @@ def main():
   plt.show()
 
 
+def plot_routes(solution):
+  labels = []
+  xs = []
+  ys = []
+  for city in solution:
+    labels.append(city)
+    xs.append(data.node_coords[city][0])
+    ys.append(data.node_coords[city][1])
+  plt.clf()
+  plt.plot(xs,ys,'b-')
+  # Add city labels on top of each point
+  for i, label in enumerate(labels):
+    plt.annotate(label, (xs[i], ys[i]), textcoords="offset points", xytext=(0,5), ha='center', fontsize=8)
+  plt.xlabel('X Coordinates')
+  plt.ylabel('Y Coordinates')
+  plt.show()
+
+
 # Simulated Annealing
-def annealing(initial_temp: float, alpha: float, repeat: int, function: int) -> list[list[int]]:
+def annealing(initial_temp: float, alpha: float, repeat: int, function: int) -> (list[list[int]], list[int]):
   probability = 0
   temp = initial_temp
   solution = random.sample(nodes, len(nodes))
@@ -72,8 +94,7 @@ def annealing(initial_temp: float, alpha: float, repeat: int, function: int) -> 
         solution_cost = neighbor_cost
     temp = temp*alpha
     attempt_distances.append(solution_cost)
-
-  return attempt_distances
+  return attempt_distances, solution
 
 # Get Cost
 def get_cost(state) -> float:
