@@ -16,28 +16,29 @@ def main():
   x = []
   all_distances = []
   for i in range(0, 4):
-    attempt = 5
+    attempt = 1
 
     # Parameters
-    init_temp = 10**-8 # < 10**-7
-    last_temp = 10**-(9+i)
-    repeat = 1000
-    alpha = math.exp(math.log(last_temp/init_temp)/repeat)
+    init_temp = 10**-8
+    repeat = 100 * 10**i
+    alpha = 0.999
     function = 0
 
     change_distances = []
-    for _ in range(attempt):   
-      attempt_distances, solution = annealing(init_temp, alpha, repeat, function)
-      change_distances.append(attempt_distances)
-      print(f'Change: {last_temp}, Attempt: {_}')
-      plot_routes(solution)
+    for j in range(1, 6):
+      global data 
+      global nodes
+      data = tsplib95.load(f'test_cases/tc0{j}.tsp')
+      nodes = list(data.get_nodes())
+      for k in range(attempt):   
+        attempt_distances, solution = annealing(init_temp, alpha, repeat, function)
+        change_distances.append(attempt_distances)
+        plot_routes(solution, f"Change {i}, Test{j}, Attempt {k}")
 
     min_distances = [min(change_distances) for change_distances in change_distances]
-    print(f'Change: {last_temp}')
     y.append(min_distances)
-    x.append(last_temp)
+    x.append(repeat)
     all_distances.append(change_distances)
-  # plt.boxplot(y, tick_labels=x)
 
   # Plotting
   for i in all_distances:
@@ -52,7 +53,7 @@ def main():
   plt.show()
 
 
-def plot_routes(solution):
+def plot_routes(solution, title):
   labels = []
   xs = []
   ys = []
@@ -60,13 +61,16 @@ def plot_routes(solution):
     labels.append(city)
     xs.append(data.node_coords[city][0])
     ys.append(data.node_coords[city][1])
+  xs.append(xs[0])
+  ys.append(ys[0])
   plt.clf()
   plt.plot(xs,ys,'b-')
   # Add city labels on top of each point
   for i, label in enumerate(labels):
-    plt.annotate(label, (xs[i], ys[i]), textcoords="offset points", xytext=(0,5), ha='center', fontsize=8)
+    plt.annotate(label, (xs[i], ys[i]), textcoords="offset points", xytext=(0,2), ha='center', fontsize=6)
   plt.xlabel('X Coordinates')
   plt.ylabel('Y Coordinates')
+  plt.title(title)
   plt.show()
 
 
