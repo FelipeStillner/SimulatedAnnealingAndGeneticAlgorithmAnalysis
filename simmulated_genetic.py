@@ -16,7 +16,7 @@ def main():
   y = []
   x = []
   all_distances = []
-  for i in range(0, 4):
+  for i in range(0, 10):
     attempt = 5
     
     population_size = 100
@@ -25,16 +25,15 @@ def main():
     repeat = generations
 
     change_distances = []
-    for j in range(1, 6):
-      global data 
-      global nodes
-      # Import Dataset
-      data = tsplib95.load(f'test_cases/tc0{j}.tsp')
-      nodes = list(data.get_nodes())
-      for k in range(attempt):   
-        attempt_distances, solution = genetic_algorithm(population_size=population_size, generations=generations, mutation_rate=mutation_rate)
-        change_distances.append(attempt_distances)
-        plot_routes(solution, f"Change {i}, Population Size {population_size}, Mutation Rate {mutation_rate}")
+    #for j in range(1):
+    global data 
+    global nodes
+    # Import Dataset
+    data = tsplib95.load(f'test_cases/tc01.tsp')
+    nodes = list(data.get_nodes())
+    attempt_distances, solution = genetic_algorithm(population_size=population_size, generations=generations, mutation_rate=mutation_rate)
+    change_distances.append(attempt_distances)
+      #plot_routes(solution, f"Map {j}, Population Size {population_size}, Mutation Rate {mutation_rate}")
 
     min_distances = [min(change_distances) for change_distances in change_distances]
     y.append(min_distances)
