@@ -19,10 +19,10 @@ def main():
   all_distances = []
   for i in range(0, 5):
     
-    population_size = 50 * (i+1)
-    generations = 500
-    mutation_rate = 0.004
-    mutation_rates.append(population_size)
+    population_size = 50
+    generations = 1000
+    mutation_rate = 0.1 * (i+1)
+    mutation_rates.append(mutation_rate)
     repeat = generations
 
     change_distances = []
@@ -49,7 +49,7 @@ def main():
       for j in range(len(i)):
         dists.append(i[j][k])
       avg_distances.append(sum(dists)/len(dists))
-    plt.plot(avg_distances, label=f'N Individuals: {mutation_rate:.3f}')
+    plt.plot(avg_distances, label=f'Mutation Rate: {mutation_rate:.3f}')
   
   plt.legend()
   plt.xlabel('Generations')
